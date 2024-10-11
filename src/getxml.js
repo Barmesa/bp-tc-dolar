@@ -13,6 +13,7 @@ export async function getxml() {
 		console.log("Fetch XML completado... " + fin);
 		if (!xml.ok) {
 			// Si la solicitud falla, lanzamos un error
+			console.error(`Error obteniendo los datos XML despues de ${fin-inicio} ms`);
 			throw new Error(`Failed to fetch XML data ${xml.status} - ${xml.statusText}`);
 		}
 		console.log(`Datos XML obtenidos exitosamente en ${fin-inicio} ms`);
