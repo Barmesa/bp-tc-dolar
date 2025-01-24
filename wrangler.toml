@@ -5,7 +5,7 @@ workers_dev = true
 compatibility_flags = [ "nodejs_compat" ]
 
 kv_namespaces = [
-  { binding = "tc", id = "774d8e0cc2634f4581cf2e36e91d5d13" }
+  { binding = "tc", id = "774d8e0cc2634f4581cf2e36e91d5d13", preview_id = "bb0091e311cc486d944228968b66a8d3" }
 ]
 
 [triggers]

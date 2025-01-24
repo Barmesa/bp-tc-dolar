@@ -57,6 +57,17 @@ export default {
 				const fav = await env.tc.get("favicon", { cacheTtl: 3600, type: "stream"});
 				return new Response(fav, { headers: { "Content-Type": "image/png" } });
 			}
+			// Se verifica si la ruta es "/actualizar" para actualizar los datos del dólar de forma manual en caso de ser necesario
+			if (url.pathname == "/actualizar") {
+				const { updateData } = await import("./updateData"); // Importación dinámica de la función updateData
+				const resultado = await updateData(env);
+
+				if (resultado.status === 'ok') {
+					return new Response(`Datos actualizados: Precio del dólar ${resultado.price}`, { status: 200 });
+				} else {
+					return new Response(`Error al actualizar datos: ${resultado.reason}`, { status: 500 });
+				}
+			}
 			console.warn("URL no permitida");
 			return new Response("URL no permitida", { status: 403 });
 		}
@@ -82,48 +93,14 @@ export default {
 	 * @param {Object} ctx - El contexto de ejecución.
 	 */
 	async scheduled(event, env, ctx) {
-		const precioMinimoPermitido = Number(await env.tc.get("precioMinimoPermitido", { cacheTtl: 3600 })).toFixed(4);
-		console.log(`Precio minimo permitido: ${precioMinimoPermitido}`);
-		const { getxml } = await import("./getxml"); // Importación dinámica de la función getxml
+		const { updateData } = await import("./updateData"); // Importación dinámica de la función updateData
+		const resultado = await updateData(env);
 
-		// Intentamos obtener los datos XML de la URL proporcionada
-		const xmlText = await getxml();
-
-		//  Definimos las etiquetas de inicio y fin para extraer el valor del dólar y la fecha
-		const itemEndTag = '</item>';
-		const descriptionStartTag = '<description>';
-		const descriptionEndTag = '</description>';
-		const pubDateStartTag = '<pubDate>';
-		const pubDateEndTag = '</pubDate>';
-
-		// Buscamos el índice de la primera ocurrencia de la etiqueta de inicio del ítem
-		const startIndex = xmlText.indexOf('<title>DOLAR');
-		const endIndex = xmlText.indexOf(itemEndTag, startIndex);
-
-		if (startIndex === -1 || endIndex === -1) {
-			console.warn('No se encontró el valor del dólar en el XML del DOF, Omitiendo... y finalizando la ejecución.');
-			return; // Si no se encuentra el valor del dólar, se finaliza la ejecución
+		if (resultado.status === 'ok') {
+			console.log(`Datos actualizados: Precio del dólar ${resultado.price}`);
+		} else {
+			console.error(`Error al actualizar datos: ${resultado.reason}`);
 		}
-
-		// El precio del dólar se encuentra entre las etiquetas de descripción asi que lo extraemos y lo convertimos a un número
-		const itemContent = xmlText.substring(startIndex, endIndex + itemEndTag.length);
-		const descriptionStartIndex = itemContent.indexOf(descriptionStartTag) + descriptionStartTag.length;
-		const descriptionEndIndex = itemContent.indexOf(descriptionEndTag, descriptionStartIndex);
-		const valorDolar = Number(itemContent.substring(descriptionStartIndex, descriptionEndIndex)).toFixed(4);
-
-		const pubDateStartIndex = itemContent.indexOf(pubDateStartTag) + pubDateStartTag.length;
-		const pubDateEndIndex = itemContent.indexOf(pubDateEndTag, pubDateStartIndex);
-		const { getDateBP } = await import("./getDateBP"); // Importación dinámica de la función getDateBP
-		const fechaDolar = getDateBP(itemContent.substring(pubDateStartIndex, pubDateEndIndex));
-		const { saveDolar } = await import("./saveDolar"); // Importación dinámica de la función saveDolar
-
-		if (valorDolar < precioMinimoPermitido) {
-			console.warn(`El valor del dólar ${valorDolar} es menor al precio mínimo permitido, Enviando fecha y precio minimo`);
-			await saveDolar(env, precioMinimoPermitido, fechaDolar);
-			return;
-		}
-		console.log(`Guardando valor del dolar: ${valorDolar} con fecha: ${fechaDolar}`);
-		await saveDolar(env, valorDolar, fechaDolar);
 	},
 	// #endregion
 };
