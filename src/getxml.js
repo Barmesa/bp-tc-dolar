@@ -8,7 +8,13 @@ export async function getxml() {
 		// y configuramos el tiempo de vida en caché de la respuesta a 1 hora
 		const inicio = Date.now();
 		console.log("Iniciando fetch XML... " + inicio);
-		const xml = await fetch('https://www.dof.gob.mx/indicadores.xml');
+		const xml = await fetch('https://www.dof.gob.mx/indicadores.xml', {
+			method: 'GET',
+			redirect: 'follow', // Fuerza al subrequest de Cloudflare a seguir las redirecciones en el origen
+			headers: {
+				'Accept': 'application/xml, text/xml'
+			}
+		});
 		const fin = Date.now();
 		console.log("Fetch XML completado... " + fin);
 		if (!xml.ok) {
